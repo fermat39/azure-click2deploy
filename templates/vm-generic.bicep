@@ -22,7 +22,7 @@ var dnsLabelPrefix = toLower('${vmName}-${uniqueString(resourceGroup().id, vmNam
 @description('Enter the name of the CSE script to run (recommended to leave as-is).')
 param scriptName string = 'cse-vmGeneric.ps1'
 @description('Enter the name of the CSE script URI (recommended to leave as-is).')
-param scriptUris array = ['https://raw.githubusercontent.com/jamesdplee/cloudlee-click2deploy/main/scripts/${scriptName}']
+param scriptUris array = ['https://raw.githubusercontent.com/fermat39/azure-click2deploy/main/scripts/${scriptName}']
 @description('Enter any arguments you require (recommended to leave as-is).')
 param scriptArgs string = ''
 var scriptCmd = 'powershell -ExecutionPolicy Unrestricted -File ${scriptName} ${scriptArgs}'

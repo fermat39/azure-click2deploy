@@ -88,7 +88,7 @@
     "scriptUris": {
       "type": "array",
       "defaultValue": [
-        "[format('https://raw.githubusercontent.com/jamesdplee/cloudlee-click2deploy/main/scripts/{0}', parameters('scriptName'))]"
+        "[format('https://raw.githubusercontent.com/fermat39/azure-click2deploy/main/scripts/{0}', parameters('scriptName'))]"
       ],
       "metadata": {
         "description": "Enter the name of the CSE script URI (recommended to leave as-is)."

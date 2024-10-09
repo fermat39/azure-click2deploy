@@ -80,7 +80,7 @@
     "devOpsUri": {
       "type": "string",
       "metadata": {
-        "description": "Paste in the URI of your Azure DevOps org (e.g. \"https://dev.azure.com/ausemart\")."
+        "description": "Paste in the URI of your Azure DevOps org (e.g. \"https://dev.azure.com/kt-az-500\")."
       }
     },
     "scriptName": {
@@ -93,7 +93,7 @@
     "scriptUris": {
       "type": "array",
       "defaultValue": [
-        "https://raw.githubusercontent.com/jamesdplee/cloudlee-click2deploy/main/scripts/cse-adoAgentSetup.ps1"
+        "https://raw.githubusercontent.com/fermat39/azure-click2deploy/main/scripts/cse-adoAgentSetup.ps1"
       ],
       "metadata": {
         "description": "Enter the name of the CSE script URI (recommended to leave as-is)."

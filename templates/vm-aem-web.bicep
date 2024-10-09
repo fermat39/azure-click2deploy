@@ -33,7 +33,7 @@ param nsgName string = 'web-nsg'
 @description('Enter the name of the CSE script to run (recommended to leave as-is).')
 param scriptName string = 'cse-vmAEMWebAppSetup.ps1'
 @description('Enter the name of the CSE script URI (recommended to leave as-is).')
-param scriptUris array = ['https://raw.githubusercontent.com/jamesdplee/cloudlee-click2deploy/main/scripts/${scriptName}']
+param scriptUris array = ['https://raw.githubusercontent.com/fermat39/azure-click2deploy/main/scripts/${scriptName}']
 var scriptArgs = ''
 var scriptCmd = 'powershell -ExecutionPolicy Unrestricted -File ${scriptName} ${scriptArgs}'
 

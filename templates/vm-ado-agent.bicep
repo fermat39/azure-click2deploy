@@ -32,7 +32,7 @@ param devOpsUri string
 @description('Enter the name of the CSE script to run (recommended to leave as-is).')
 param scriptName string = 'cse-adoAgentSetup.ps1'
 @description('Enter the name of the CSE script URI (recommended to leave as-is).')
-param scriptUris array = ['https://raw.githubusercontent.com/jamesdplee/cloudlee-click2deploy/main/scripts/cse-adoAgentSetup.ps1']
+param scriptUris array = ['https://raw.githubusercontent.com/fermat39/azure-click2deploy/main/scripts/cse-adoAgentSetup.ps1']
 var scriptArgs = '-devOpsUri ${devOpsUri} -devOpsPAT ${devOpsPAT}'
 var scriptCmd = 'powershell -ExecutionPolicy Unrestricted -File ${scriptName} ${scriptArgs}'
 
