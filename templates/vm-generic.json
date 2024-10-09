@@ -1,0 +1,300 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.23.1.45101",
+      "templateHash": "8829798519729361351"
+    }
+  },
+  "parameters": {
+    "vmCount": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": {
+        "description": "Choose how many VMs you would like to deploy."
+      }
+    },
+    "vmName": {
+      "type": "string",
+      "defaultValue": "vm",
+      "metadata": {
+        "description": "Enter a name for your VM(s). If you deploy multipe VMs, this will be the prefix."
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_B2s",
+      "metadata": {
+        "description": "Choose a size for your VM(s)."
+      }
+    },
+    "vmAdminUser": {
+      "type": "string",
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "Enter a username for accessing your VM(s)."
+      }
+    },
+    "vmAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Enter the password for accessing your VM(s)."
+      }
+    },
+    "scriptName": {
+      "type": "string",
+      "defaultValue": "cse-vmGeneric.ps1",
+      "metadata": {
+        "description": "Enter the name of the CSE script to run (recommended to leave as-is)."
+      }
+    },
+    "scriptUris": {
+      "type": "array",
+      "defaultValue": [
+        "[format('https://raw.githubusercontent.com/jamesdplee/cloudlee-click2deploy/main/scripts/{0}', parameters('scriptName'))]"
+      ],
+      "metadata": {
+        "description": "Enter the name of the CSE script URI (recommended to leave as-is)."
+      }
+    },
+    "scriptArgs": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Enter any arguments you require (recommended to leave as-is)."
+      }
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "vnet1",
+      "metadata": {
+        "description": "Enter a name for your VNet."
+      }
+    },
+    "vnetAddressSpace": {
+      "type": "string",
+      "defaultValue": "10.100.0.0/16",
+      "metadata": {
+        "description": "Choose an address space for your VNet."
+      }
+    },
+    "vnetSubnetName": {
+      "type": "string",
+      "defaultValue": "subnet1",
+      "metadata": {
+        "description": "Enter a name for the subnet to be created in your VNet."
+      }
+    },
+    "vnetSubnetSpace": {
+      "type": "string",
+      "defaultValue": "10.100.1.0/24",
+      "metadata": {
+        "description": "Enter an address space for your subnet (within the VNet)."
+      }
+    },
+    "nsgName": {
+      "type": "string",
+      "defaultValue": "nsg1",
+      "metadata": {
+        "description": "Enter a name for the NSG that will protect your VNet."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Leave this as-is for all resources to be created in the same locaiton as the resource group."
+      }
+    }
+  },
+  "variables": {
+    "dnsLabelPrefix": "[toLower(format('{0}-{1}', parameters('vmName'), uniqueString(resourceGroup().id, parameters('vmName'))))]",
+    "scriptCmd": "[format('powershell -ExecutionPolicy Unrestricted -File {0} {1}', parameters('scriptName'), parameters('scriptArgs'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2019-11-01",
+      "name": "[parameters('nsgName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-inbound-rdp",
+            "properties": {
+              "description": "Allows RDP inbound from all source addresses (should lock this down!)",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "3389",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "allow-inbound-http",
+            "properties": {
+              "description": "Allows http inbound from all source addresses (should lock this down!)",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "80",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 1200,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2019-11-01",
+      "name": "[parameters('vnetName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('vnetAddressSpace')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[parameters('vnetSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('vnetSubnetSpace')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+              }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "publicIPAddress",
+        "count": "[length(range(0, parameters('vmCount')))]"
+      },
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2019-11-01",
+      "name": "[format('{0}{1}-ip', parameters('vmName'), range(0, parameters('vmCount'))[copyIndex()])]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "dnsSettings": {
+          "domainNameLabel": "[format('{0}{1}', variables('dnsLabelPrefix'), range(0, parameters('vmCount'))[copyIndex()])]"
+        }
+      }
+    },
+    {
+      "copy": {
+        "name": "networkInterface",
+        "count": "[length(range(0, parameters('vmCount')))]"
+      },
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2020-11-01",
+      "name": "[format('{0}{1}-nic', parameters('vmName'), range(0, parameters('vmCount'))[copyIndex()])]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}-ip', parameters('vmName'), range(0, parameters('vmCount'))[range(0, parameters('vmCount'))[copyIndex()]]))]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('vnetSubnetName'))]"
+              }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}-ip', parameters('vmName'), range(0, parameters('vmCount'))[range(0, parameters('vmCount'))[copyIndex()]]))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "windowsVMGuestConfigExtension",
+        "count": "[length(range(0, parameters('vmCount')))]"
+      },
+      "condition": "[not(empty(parameters('scriptUris')))]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2020-12-01",
+      "name": "[format('{0}/{1}', format('{0}{1}', parameters('vmName'), range(0, parameters('vmCount'))[range(0, parameters('vmCount'))[copyIndex()]]), 'config-app')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "CustomScriptExtension",
+        "typeHandlerVersion": "1.10",
+        "autoUpgradeMinorVersion": true,
+        "enableAutomaticUpgrade": false,
+        "settings": {},
+        "protectedSettings": {
+          "fileUris": "[parameters('scriptUris')]",
+          "commandToExecute": "[variables('scriptCmd')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', format('{0}{1}', parameters('vmName'), range(0, parameters('vmCount'))[range(0, parameters('vmCount'))[copyIndex()]]))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "windowsVM",
+        "count": "[length(range(0, parameters('vmCount')))]"
+      },
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2020-12-01",
+      "name": "[format('{0}{1}', parameters('vmName'), range(0, parameters('vmCount'))[copyIndex()])]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[format('{0}{1}', parameters('vmName'), range(0, parameters('vmCount'))[copyIndex()])]",
+          "adminUsername": "[parameters('vmAdminUser')]",
+          "adminPassword": "[parameters('vmAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "microsoftvisualstudio",
+            "offer": "visualstudio2022",
+            "sku": "vs-2022-comm-latest-ws2022",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[format('{0}{1}-disk', parameters('vmName'), range(0, parameters('vmCount'))[copyIndex()])]",
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}-nic', parameters('vmName'), range(0, parameters('vmCount'))[range(0, parameters('vmCount'))[copyIndex()]]))]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}-nic', parameters('vmName'), range(0, parameters('vmCount'))[range(0, parameters('vmCount'))[copyIndex()]]))]"
+      ]
+    }
+  ]
+}
